@@ -1,6 +1,23 @@
 //@ts-check
+import { HANDLE_COLOR } from "./config.js";
 import { parse } from "./files.js"
+import { deBoor, interpolate } from "./math.js";
 
+
+// Make an instance of two and place it on the page.
+const elem = document.getElementById('canvas');
+
+let two = new Two({
+    width: window.innerWidth, height: window.innerHeight,
+    type: Two.Types.svg
+}).appendTo(elem)
+
+
+const state = {
+    anchors: [],
+    handles: [],
+    guides: null
+}
 
 
 const data = parse(`BSPLINE
@@ -16,7 +33,6 @@ const data = parse(`BSPLINE
 0.63 0.5
 0.7 0.3
 `)
-console.log(data)
 
 const knotVector = data.knotVector
 const n = data.numPoints
@@ -35,9 +51,79 @@ for (let i = 0; i < d + 1; i++) {
 // (c) The last d + 1 knots are n - d
 const starting = knotVector.length - d - 1
 for (let i = starting; i < knotVector.length; i++) {
-    if (knotVector[i] != d - n) throw new Error("Last (d + 1) entries in the knot vector must be (n - d).")
+    if (knotVector[i] != n - d) throw new Error("Last (d + 1) entries in the knot vector must be (n - d).")
 }
 
 
 // Construct a CLAMPED B-Spline
+
+// Add anchors mapped to window space
+state.anchors = data.points.map(point => {
+    let x = point[0] * window.innerWidth
+    let y = point[1] * window.innerHeight
+
+    return new Two.Anchor(x, y)
+})
+
+// Draw guides between each handle
+// state.guides = new Two.Path(state.anchors.flat())
+// state.guides.noFill()
+// two.add(state.guides)
+
+// Add the handles
+state.handles = state.anchors.map(anchor => {
+    const circle = two.makeCircle(anchor.x, anchor.y, 5);
+    circle.fill = HANDLE_COLOR
+    circle.linewidth = 0
+})
+
+
+const lim = 1
+const res = .05
+const points = []
+const points2 = []
+for (let i = 0; i < lim; i += res) {
+    let v = deBoor(i, data.degree + 1, data.points, knotVector)
+    points.push(v)
+    let b = interpolate(i, data.degree, data.points, data.knotVector)
+    points2.push(b)
+}
+
+console.log(points2)
+
+let curvePoints = points.map(point => {
+    let x = point[0] * window.innerWidth
+    let y = point[1] * window.innerHeight
+
+    return new Two.Anchor(x, y)
+})
+let test = new Two.Path(curvePoints)
+test.stroke = "green"
+test.noFill()
+two.add(test)
+
+let curvePoints2 = points2.map(point => {
+    let x = point[0] * window.innerWidth
+    let y = point[1] * window.innerHeight
+
+    return new Two.Anchor(x, y)
+})
+let test2 = new Two.Path(curvePoints2)
+test2.stroke = "red"
+test2.noFill()
+two.add(test2)
+
+
+// console.log(deBoor(.5, data.degree + 1, data.points, knotVector))
+
+
+
+two.bind('update', () => {
+    // This code is called everytime two.update() is called.
+    // Effectively 60 times per second.
+    // console.log(resolution.val)
+}).play();
+
+
+
 
