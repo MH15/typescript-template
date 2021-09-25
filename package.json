@@ -1,0 +1,22 @@
+{
+  "name": "typescript-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MH15/typescript-template.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MH15/typescript-template/issues"
+  },
+  "homepage": "https://github.com/MH15/typescript-template#readme",
+  "dependencies": {
+    "serve-handler": "^6.1.3"
+  }
+}

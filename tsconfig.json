@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "target": "ESNext",
+    "outDir": "dist",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "allowJs": true
+    // "checkJs": false
+  }
+}
