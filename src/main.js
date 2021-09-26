@@ -78,8 +78,8 @@ state.handles = state.anchors.map(anchor => {
 })
 
 
-const lim = 1
-const res = .05
+const lim = .9
+const res = .01
 const points = []
 const points2 = []
 for (let i = 0; i < lim; i += res) {

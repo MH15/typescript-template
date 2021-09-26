@@ -47,15 +47,13 @@ export function deBoor(u, k, points, knots) {
     //     q[0][i] = points[i]
     // }
 
-    // console.log(q)
+    console.log("q pre:", q)
 
-    for (let r = 1; r < k; r++) {
+    for (let r = 1; r <= k; r++) {
         let h = k - r
-        // console.log("r:", r)
         // Construct control points for order h spline
         for (let i = j - h + 1; i < j; i++) {
-            // console.log("i:", i)
-            let alpha = (u - knots[i]) / (knots[i + k - r] - knots[i])
+            let alpha = (t - knots[i]) / (knots[i + k - r] - knots[i])
             // console.log("alpha:", alpha)
 
             let a = q[r - 1][i - 1]
@@ -94,7 +92,7 @@ function lerpVector(t, a, b) {
 
 export function interpolate(t, degree, points, knots, weights) {
 
-    let s, l;              // function-scoped iteration letiables
+    let j;              // function-scoped iteration letiables
     let n = points.length;    // points count
     let d = points[0].length; // point dimensionality
     const k = degree + 1
@@ -134,8 +132,8 @@ export function interpolate(t, degree, points, knots, weights) {
     if (t < low || t > high) throw new Error('out of bounds');
 
     // find s (the spline segment) for the [t] value provided
-    for (s = domain[0]; s < domain[1]; s++) {
-        if (t >= knots[s] && t <= knots[s + 1]) {
+    for (j = domain[0]; j < domain[1]; j++) {
+        if (t >= knots[j] && t <= knots[j + 1]) {
             break;
         }
     }
@@ -144,33 +142,30 @@ export function interpolate(t, degree, points, knots, weights) {
     let v = [];
     for (let i = 0; i < n; i++) {
         v[i] = [];
-        for (let j = 0; j < d; j++) {
-            v[i][j] = points[i][j];
-        }
-        v[i][d] = 1;
+        v[i] = points[i]
     }
 
     // console.log(v)
     // l (level) goes from 1 to the curve degree + 1
-    let alpha;
-    for (l = 1; l <= k; l++) {
-        let h = k - l
+    for (let r = 1; r <= k; r++) {
+        let h = k - r
         // build level l of the pyramid
-        for (let i = s; i > s - degree - 1 + l; i--) {
-
-            alpha = (t - knots[i]) / (knots[i + k - l] - knots[i]);
+        // for (let i = j - degree + r; i < j; i++) {
+        for (let i = j; i > j - degree - 1 + r; i--) {
+            console.log(r, i)
+            let alpha = (t - knots[i]) / (knots[i + k - r] - knots[i]);
 
             let a = v[i - 1]
             let b = v[i]
+            // console.log(a, b)
             v[i] = lerpVector(alpha, a, b)
-            console.log(v[i])
         }
     }
 
     // convert back to cartesian and return
     let result = [];
     for (let i = 0; i < d; i++) {
-        result[i] = v[s][i] / v[s][d];
+        result[i] = v[j][i]
     }
 
     return result;
