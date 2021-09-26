@@ -1,5 +1,6 @@
 //@ts-check
 import { HANDLE_COLOR } from "./config.js";
+import { mousedownHandler, mousemoveHandler, mouseupHandler } from "./events.js";
 import { parse } from "./files.js"
 import { deBoor, interpolate } from "./math.js";
 
@@ -16,9 +17,14 @@ let two = new Two({
 const state = {
     anchors: [],
     handles: [],
-    guides: null
+    guides: null,
+    dragging: false,
+    selected: null,
+    tooltip: new Two.Text("_", 100, 100)
 }
 
+state.tooltip.visible = false
+two.add(state.tooltip)
 
 const data = parse(`BSPLINE
 # Sample file containing Bspline control points
@@ -75,53 +81,88 @@ state.handles = state.anchors.map(anchor => {
     const circle = two.makeCircle(anchor.x, anchor.y, 5);
     circle.fill = HANDLE_COLOR
     circle.linewidth = 0
+    return circle
 })
 
 
-const lim = .9
+const lim = 1
 const res = .01
-const points = []
-const points2 = []
-for (let i = 0; i < lim; i += res) {
-    let v = deBoor(i, data.degree + 1, data.points, knotVector)
-    points.push(v)
-    let b = interpolate(i, data.degree, data.points, data.knotVector)
-    points2.push(b)
-}
+// let points = []
+// for (let i = 0; i < lim; i += res) {
+//     let v = deBoor(i, data.degree + 1, data.points, knotVector)
+//     points.push(v)
+// }
 
-console.log(points2)
 
-let curvePoints = points.map(point => {
-    let x = point[0] * window.innerWidth
-    let y = point[1] * window.innerHeight
+// let curvePoints = points.map(point => {
+//     let x = point[0] * window.innerWidth
+//     let y = point[1] * window.innerHeight
 
-    return new Two.Anchor(x, y)
-})
-let test = new Two.Path(curvePoints)
+//     return new Two.Anchor(x, y)
+// })
+
+
+
+let test = new Two.Path([])
 test.stroke = "green"
 test.noFill()
 two.add(test)
 
-let curvePoints2 = points2.map(point => {
-    let x = point[0] * window.innerWidth
-    let y = point[1] * window.innerHeight
+// let curvePoints2 = points2.map(point => {
+//     let x = point[0] * window.innerWidth
+//     let y = point[1] * window.innerHeight
 
-    return new Two.Anchor(x, y)
-})
-let test2 = new Two.Path(curvePoints2)
-test2.stroke = "red"
-test2.noFill()
-two.add(test2)
+//     return new Two.Anchor(x, y)
+// })
+// let test2 = new Two.Path(curvePoints2)
+// test2.stroke = "red"
+// test2.noFill()
+// two.add(test2)
 
 
 // console.log(deBoor(.5, data.degree + 1, data.points, knotVector))
 
 
 
+elem?.addEventListener("mousedown", (e) => mousedownHandler(e, state, Two))
+elem?.addEventListener("mouseup", (e) => mouseupHandler(state))
+elem?.addEventListener("mousemove", (e) => mousemoveHandler(e, state, Two))
+// elem?.addEventListener("click", (e) => addpointHandler(e, state, Two, two))
+
+
+let pointsOnCurve = []
+let controlPoints = state.handles.map(handle => {
+    return [handle.translation.x / window.innerWidth, handle.translation.y / window.innerHeight]
+})
+console.log(controlPoints)
+
 two.bind('update', () => {
     // This code is called everytime two.update() is called.
     // Effectively 60 times per second.
     // console.log(resolution.val)
+
+    const lim = 1
+    const res = .01
+
+    let pointsOnCurve = []
+    let controlPoints = state.handles.map(handle => {
+        return [handle.translation.x / window.innerWidth, handle.translation.y / window.innerHeight]
+    })
+    for (let i = 0; i < lim; i += res) {
+        let v = deBoor(i, data.degree + 1, controlPoints, knotVector)
+        pointsOnCurve.push(v)
+        // let b = interpolate(i, data.degree, data.points, data.knotVector)
+        // points2.push(b)
+    }
+
+    const pointsInWindowSpace = pointsOnCurve.map(point => {
+        let x = point[0] * window.innerWidth
+        let y = point[1] * window.innerHeight
+
+        return new Two.Anchor(x, y)
+    })
+
+    test.vertices = pointsInWindowSpace
 }).play();
 
 
