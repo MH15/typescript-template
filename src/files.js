@@ -33,6 +33,21 @@ export function parse(content) {
         ptr++
     }
 
+    const knotVectorSize = numberOfPoints + degree + 1
+
+    // (a) The knot vector has n + d + 1 knots
+    if (knotVectorSize != knotVector.length) throw new Error("Knot vector must have (n + d + 1) entries.")
+
+    // (b) The first d + 1 knots are all 0
+    for (let i = 0; i < degree + 1; i++) {
+        if (knotVector[i] != 0) throw new Error("First (d + 1) entries in the knot vector must be 0.")
+    }
+
+    // (c) The last d + 1 knots are n - d
+    const starting = knotVector.length - degree - 1
+    for (let i = starting; i < knotVector.length; i++) {
+        if (knotVector[i] != numberOfPoints - degree) throw new Error("Last (d + 1) entries in the knot vector must be (n - d).")
+    }
 
 
     return {

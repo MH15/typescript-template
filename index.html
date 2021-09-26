@@ -8,6 +8,7 @@
     <!-- <base href="./"> -->
     <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
     <script src="/src/two.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module" src="/src/main.js"></script>
     <style>
         body,
@@ -15,13 +16,22 @@
             margin: 0;
             height: 100%;
             overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        button {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
         }
     </style>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 
 <body>
     <div id="canvas"></div>
     
+    <button id="add-control-point">Add Control Point</button>
 </body>
 
 </html>

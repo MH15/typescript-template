@@ -12,34 +12,17 @@ export function deBoor(u, k, points, knots) {
     let d = points[0].length; // point dimensionality
     const degree = k - 1
 
-    if (degree < 1) throw new Error('degree must be at least 1 (linear)');
-    if (degree > (n - 1)) throw new Error('degree must be less than or equal to point count - 1');
 
-
-    if (!knots) {
-        // build knot vector of length [n + degree + 1]
-        let knots = [];
-        for (let i = 0; i < n + degree + 1; i++) {
-            knots[i] = i;
-        }
-    } else {
-        if (knots.length !== n + degree + 1) throw new Error('bad knot vector length');
-    }
-
-    let domain = [
-        degree,
-        knots.length - 1 - degree
-    ];
 
     // remap t to the domain where the spline is defined
-    let low = knots[domain[0]];
-    let high = knots[domain[1]];
+    let low = knots[degree];
+    let high = knots[knots.length - degree - 1];
     let t = u * (high - low) + low;
+    // console.log(low, high)
 
-    if (t < low || t > high) throw new Error('out of bounds');
 
     // find s (the spline segment) for the [t] value provided
-    for (j = domain[0]; j < domain[1]; j++) {
+    for (j = degree; j < knots.length - degree - 1; j++) {
         if (t >= knots[j] && t <= knots[j + 1]) {
             break;
         }
@@ -79,78 +62,6 @@ export function deBoor(u, k, points, knots) {
     return result;
 
 }
-
-/**
- * 
- * @param {number} u 
- * @param {number} k degree + 1
- * @param {number[][]} points 
- * @param {number[]} knots 
- */
-export function deBoorOld(u, k, points, knots) {
-    // console.log(`deBoors(${u},${k})`)
-    const n = points.length
-    let j = 0
-
-    // find j (the spline segment) for the [t] value provided
-    // for (j = domain[0]; s < domain[1]; s++) {
-    //     if (t >= knots[s] && t <= knots[s + 1]) {
-    //         break;
-    //     }
-    // }
-    const degree = k - 1
-
-    let domain = [
-        degree,
-        knots.length - 1 - degree
-    ];
-
-    // remap t to the domain where the spline is defined
-    var low = knots[domain[0]];
-    var high = knots[domain[1]];
-    let t = u * (high - low) + low;
-
-    for (j = domain[0]; j < domain[1]; j++) {
-        if (t >= knots[j] && t <= knots[j + 1]) {
-            break;
-        }
-    }
-    // console.log("j:", j, "t:", t)
-
-    let q = []
-    q[0] = []
-    for (let i = j - k + 1; i < j; i++) {
-        q[0][i] = points[i]
-    }
-
-    // for (let i = 0; i < n; i++) {
-    //     q[i] = []
-    //     q[0][i] = points[i]
-    // }
-
-    // console.log("q pre:", q)
-
-    for (let r = 1; r <= k; r++) {
-        let h = k - r
-        // console.log(r)
-        // Construct control points for order h spline
-        for (let i = j - h + 1; i < j; i++) {
-            let alpha = (u - knots[i]) / (knots[i + k - r] - knots[i])
-            // console.log("alpha:", alpha)
-
-            let a = q[r - 1][i - 1]
-            let b = q[r - 1][i]
-            // console.log(a, b)
-            q[r] = []
-            q[r][i] = lerpVector(alpha, a, b)
-        }
-    }
-
-    // console.log(q)
-
-    return q[k - 2][j - 1]
-}
-
 
 
 /**
@@ -172,83 +83,93 @@ function lerpVector(t, a, b) {
 
 
 
-export function interpolate(t, degree, points, knots, weights) {
 
+/**
+ * 
+ * @param {number} h 
+ * @param {number} k 
+ * @param {[number, number][]} points 
+ * @param {number[]} knots 
+ */
+export function BoehmKnotInsertion(h, k, points, knots) {
     let j;              // function-scoped iteration letiables
     let n = points.length;    // points count
     let d = points[0].length; // point dimensionality
-    const k = degree + 1
+    const degree = k - 1
 
-    if (degree < 1) throw new Error('degree must be at least 1 (linear)');
-    if (degree > (n - 1)) throw new Error('degree must be less than or equal to point count - 1');
+    // console.log("degree:", degree)
 
-    if (!weights) {
-        // build weight vector of length [n]
-        weights = [];
-        for (let i = 0; i < n; i++) {
-            weights[i] = 1;
-        }
-    }
+    // console.log(n)
+
+    console.log(`BoehmKnotInsertion(${h},${k})`)
+
+    // Insert new knot
+    let newKnotVector = knots.slice(0, h)
+    let newKnot = (knots[h - 1] + knots[h]) / 2
+    newKnotVector.push(newKnot, ...knots.slice(h))
+    console.log(newKnotVector)
 
 
-    if (!knots) {
-        // build knot vector of length [n + degree + 1]
-        let knots = [];
-        for (let i = 0; i < n + degree + 1; i++) {
-            knots[i] = i;
-        }
-    } else {
-        if (knots.length !== n + degree + 1) throw new Error('bad knot vector length');
-    }
+    let max = newKnotVector.reduce(function (a, b) {
+        return Math.max(a, b);
+    }, 0);
+    // 
+    let scaledKnots = newKnotVector.map(knot => knot / max)
+    console.log(scaledKnots)
 
-    let domain = [
-        degree,
-        knots.length - 1 - degree
-    ];
+    knots = newKnotVector
 
     // remap t to the domain where the spline is defined
-    let low = knots[domain[0]];
-    let high = knots[domain[1]];
-    t = t * (high - low) + low;
+    let low = knots[degree];
+    let high = knots[knots.length - degree - 1];
+    let t = (h / points.length) * (high - low) + low;
 
-    if (t < low || t > high) throw new Error('out of bounds');
+    t = h / max
+
+    t = h - degree
+
+    console.log(low, high, t, max)
 
     // find s (the spline segment) for the [t] value provided
-    for (j = domain[0]; j < domain[1]; j++) {
-        if (t >= knots[j] && t <= knots[j + 1]) {
+    for (j = degree; j < knots.length - degree - 1; j++) {
+        if (h >= knots[j] && h <= knots[j + 1]) {
             break;
         }
     }
 
-    // convert points to homogeneous coordinates
-    let v = [];
-    for (let i = 0; i < n; i++) {
-        v[i] = [];
-        v[i] = points[i]
+    console.log(j)
+
+    let q = []
+
+    // Keep the first j - k + 1 control points
+    for (let i = 0; i < j - k + 0; i++) {
+        // console.log("i1:", i)
+        q.push(points[i])
     }
 
-    // console.log(v)
-    // l (level) goes from 1 to the curve degree + 1
-    for (let r = 1; r <= k; r++) {
-        let h = k - r
-        // console.log(r)
-        // build level l of the pyramid
-        // for (let i = j - degree + r; i <= j; i++) {
-        for (let i = j; i > j - degree - 1 + r; i--) {
-            let alpha = (t - knots[i]) / (knots[i + k - r] - knots[i]);
 
-            let a = v[i - 1]
-            let b = v[i]
-            // console.log(a, b)
-            v[i] = lerpVector(alpha, a, b)
-        }
+
+    // Replace k - 2 control points
+    for (let i = j - k + 0; i < j - 1; i++) {
+        // console.log("i3:", i)
+        let alpha = (t - knots[i]) / (knots[i + degree] - knots[i]);
+        console.log("alpha: ", alpha, knots[i], knots[i + degree])
+        let a = points[i - 1]
+        let b = points[i]
+        console.log(a, b)
+        let vec = lerpVector(alpha, a, b)
+        console.log(vec)
+        q.push(vec)
     }
 
-    // convert back to cartesian and return
-    let result = [];
-    for (let i = 0; i < d; i++) {
-        result[i] = v[j][i]
+    // Keep the last n - j + 1 control points
+    for (let i = j - 2; i < n; i++) {
+        // console.log("i2:", i)
+        q.push(points[i])
     }
 
-    return result;
+    console.log(q)
+
+    return [q, newKnotVector]
+
 }
