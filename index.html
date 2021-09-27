@@ -12,7 +12,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module" src="src/main.js"></script>
     <base href="/typescript-template" />
-<!-- https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/single-insertion.html -->
+    <!-- https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/single-insertion.html -->
 
     <style>
         body,
@@ -23,10 +23,36 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        button {
+        #control-row {
             position: fixed;
-            bottom: 10px;
-            right: 10px;
+            bottom: 5px;
+            left: 5px;
+            width: 100%;
+            display: flex;
+
+        }
+
+        #control-row button {
+            margin: 5px;
+        }
+
+        #fileBox {
+            position: fixed;
+            top: 50%;
+            width: 100%;
+            display: none;
+        }
+
+        #fileBox #input {
+            padding: 30px;
+            background: rgba(0, 0, 0, .25);
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #input input {
+            margin-bottom: 20px;
         }
     </style>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
@@ -34,8 +60,21 @@
 
 <body>
     <div id="canvas"></div>
-    
-    <button id="add-control-point">Add Control Point</button>
+
+    <div id="control-row">
+        <button id="restart">Restart and Draw</button>
+        <button id="restart-file">Restart from File</button>
+        <button id="add-control-point">Add Control Point</button>
+        <button id="save">Save</button>
+    </div>
+    <div id="fileBox">
+        <div id="input">
+
+            <input type="file" class="" id="start-file" />
+            <button id="restart-file-submit">Restart from File</button>
+        </div>
+    </div>
+
 </body>
 
 </html>

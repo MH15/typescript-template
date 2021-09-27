@@ -11,7 +11,7 @@ export function parse(content) {
     lines = lines.filter((line) => !line.startsWith("#"))
 
 
-    if (lines[ptr] != "BSPLINE") throw new Error("File must begin with 'BEZIER'")
+    if (lines[ptr] != "BSPLINE") throw new Error("File must begin with 'BSPLINE'")
 
     ptr++
     const [dimension, numberOfPoints, degree] = validate(lines[ptr])
@@ -71,4 +71,36 @@ function validate(line) {
     let degree = parseInt(chars[2])
 
     return [dimension, numberOfPoints, degree]
+}
+
+
+export function download(filename, text) {
+    let element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
+
+/**
+ * 
+ * @param {File} file 
+ * @returns {Promise<string>}
+ */
+export function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (res) => {
+            resolve(res.target.result.toString());
+        };
+        reader.onerror = (err) => reject(err);
+
+        reader.readAsText(file);
+    });
 }

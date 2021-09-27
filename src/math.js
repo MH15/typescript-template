@@ -91,83 +91,69 @@ function lerpVector(t, a, b) {
  * @param {number[]} knots 
  */
 export function BoehmKnotInsertion(h, k, points, knots) {
-    let j;              // function-scoped iteration letiables
     let n = points.length;    // points count
-    let d = points[0].length; // point dimensionality
     const degree = k - 1
 
-    // console.log("degree:", degree)
-
-    // console.log(n)
 
     console.log(`BoehmKnotInsertion(${h},${k})`)
 
-    // Insert new knot
-    let newKnotVector = knots.slice(0, h)
-    let newKnot = (knots[h - 1] + knots[h]) / 2
-    newKnotVector.push(newKnot, ...knots.slice(h))
-    console.log(newKnotVector)
-
-
-    let max = newKnotVector.reduce(function (a, b) {
-        return Math.max(a, b);
-    }, 0);
-    // 
-    let scaledKnots = newKnotVector.map(knot => knot / max)
-    // console.log(scaledKnots)
-
-    knots = newKnotVector
-
-    // remap t to the domain where the spline is defined
-    let low = knots[degree];
-    let high = knots[knots.length - degree - 1];
-    let t = (h / points.length) * (high - low) + low;
-
-    t = h / max
-
-    t = h - degree
-
-    console.log(low, high, t, max)
 
     // find s (the spline segment) for the [t] value provided
+    let j = 0
     for (j = degree; j < knots.length - degree - 1; j++) {
         if (h >= knots[j] && h <= knots[j + 1]) {
             break;
         }
     }
 
-    console.log(j)
+    // Insert new knot
+    let newKnotPos = j + 1
+    let newKnotVector = knots.slice(0, newKnotPos)
+    let newKnot = (knots[newKnotPos - 1] + knots[newKnotPos]) / 2
+    newKnotVector.push(h, ...knots.slice(newKnotPos))
+    console.log(newKnotVector)
 
-    let q = []
+
+    knots = newKnotVector
+
+    console.log("newKnot:", h)
+
+
+    let q = Array(points.length + degree - 1)
 
     // Keep the first j - k + 1 control points
-    for (let i = 0; i < j - k + 0; i++) {
-        // console.log("i1:", i)
-        q.push(points[i])
+    for (let i = 0; i <= j - k + 1; i++) {
+        console.log("i1:", i)
+        q[i] = points[i]
     }
 
+    // Keep the last n - j + 1 control points
+    for (let i = j; i < n; i++) {
+        console.log("i2:", i)
+        q[i + degree - 1] = points[i]
+    }
 
+    // newKnot = newKnot + 2
 
     // Replace k - 2 control points
-    for (let i = j - k + 0; i < j - 1; i++) {
-        // console.log("i3:", i)
-        let alpha = (newKnot - knots[i]) / (knots[i + degree] - knots[i]);
-        console.log("alpha: ", alpha, knots[i], knots[i + degree])
+    for (let i = j - k + 2; i <= j; i++) {
+        console.log("i3:", i)
+        let alpha = (h - knots[i]) / (knots[i + degree] - knots[i]);
+        console.log(`${alpha} = (${newKnot} - ${knots[i]}) / (${knots[i + degree]} - ${knots[i]})`)
+
         let a = points[i - 1]
         let b = points[i]
         console.log(a, b)
         let vec = lerpVector(alpha, a, b)
-        console.log(vec)
-        q.push(vec)
+        vec[2] = "added"
+        q[i] = vec
     }
 
-    // Keep the last n - j + 1 control points
-    for (let i = j - 2; i < n; i++) {
-        // console.log("i2:", i)
-        q.push(points[i])
-    }
+
 
     console.log(q)
+
+    console.log(newKnotVector)
 
     return [q, newKnotVector]
 

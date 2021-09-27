@@ -1,14 +1,15 @@
 //@ts-check
-import { HANDLE_COLOR, MODE_DEFAULT, MODE_ADD_POINT } from "./config.js";
-import { mousedownHandler, mousemoveHandler, mouseupHandler } from "./events.js";
-import { parse } from "./files.js"
+import { HANDLE_COLOR, MODE_DEFAULT, MODE_ADD_POINT, MODE_INSERT } from "./config.js";
+import { addpointHandler, mousedownHandler, mousemoveHandler, mouseupHandler, saveHandler } from "./events.js";
+import { download, parse, readFile } from "./files.js"
 import { deBoor } from "./math.js";
+import { anchorsToCircles, cleanupState, createState, pointsToAnchors } from "./state.js";
 
 
 // Make an instance of two and place it on the page.
 const elem = document.getElementById('canvas');
 
-let two = new Two({
+window.two = new Two({
     width: window.innerWidth, height: window.innerHeight,
     type: Two.Types.svg
 }).appendTo(elem)
@@ -16,7 +17,8 @@ let two = new Two({
 
 
 
-const data = parse(`BSPLINE
+
+let data = parse(`BSPLINE
 # Sample file containing Bspline control points
 # {dimension} {number of points} {degree}
 2 7 2
@@ -30,37 +32,14 @@ const data = parse(`BSPLINE
 0.7 0.3
 `)
 
-const state = {
-    anchors: [],
-    handles: [],
-    guides: null,
-    dragging: false,
-    selected: null,
-    tooltip: new Two.Text("_", 100, 100),
-    mode: MODE_DEFAULT,
-    degree: data.degree,
-    message: null,
-    knots: data.knotVector
-}
-
-state.tooltip.visible = false
-two.add(state.tooltip)
+let state = createState(data.degree, data.knotVector)
 
 
 // Construct a CLAMPED B-Spline
 
-// Add anchors mapped to window space
-state.anchors = data.points.map(point => {
-    let x = point[0] * window.innerWidth
-    let y = point[1] * window.innerHeight
-
-    return new Two.Anchor(x, y)
-})
 
 // Draw guides between each handle
-state.guides = new Two.Path(state.anchors.flat())
-state.guides.noFill()
-two.add(state.guides)
+
 
 let curve = new Two.Path([])
 curve.stroke = "green"
@@ -68,13 +47,102 @@ curve.linewidth = 2
 curve.noFill()
 two.add(curve)
 
+// Add anchors mapped to window space
+state.anchors = pointsToAnchors(data.points)
 // Add the handles
-state.handles = state.anchors.map(anchor => {
-    const circle = two.makeCircle(anchor.x, anchor.y, 5);
-    circle.fill = HANDLE_COLOR
-    circle.linewidth = 0
-    return circle
+state.handles = anchorsToCircles(state.anchors)
+
+
+document.querySelector("#save").addEventListener("click", () => saveHandler(state))
+
+
+
+
+document.querySelector("#restart").addEventListener("click", () => {
+    let n = parseInt(prompt("Enter number of points n:"))
+    let d = parseInt(prompt("Enter spline degree d:"))
+
+    if (!(n >= (d + 1))) throw new Error("Inputs do not satisfy requirement n >= d + 1")
+
+    // Create initial knot vector
+    let knotVector = new Array(n + d + 1)
+    for (let i = 0; i < knotVector.length; i++) {
+        if (i < d + 1) knotVector[i] = 0
+        else if (i < n) knotVector[i] = i - d
+        else knotVector[i] = n - d
+    }
+    state.knots = knotVector
+    state.degree = d
+
+    // delete old points
+    state.handles.forEach((handle) => {
+        two.remove(handle)
+    })
+
+    state.anchors = []
+    state.handles = []
+    curve.vertices = []
+    state.maxPoints = n
+
+
+    // Enter insert mode
+    state.mode = MODE_INSERT
+
 })
+
+
+/**
+ * @type {HTMLInputElement}
+ */
+const fileUpload = document.querySelector("#fileBox")
+
+/**
+ * @type {HTMLInputElement}
+ */
+const fileInput = document.querySelector("#start-file")
+
+document.querySelector("#restart-file").addEventListener("click", () => {
+    fileUpload.style.display = "flex"
+})
+
+document.querySelector("#restart-file-submit").addEventListener("click", async () => {
+
+
+    let file = fileInput.files[0]
+
+    console.log("content", file)
+
+    if (file) {
+        // load curve from file
+        let content = await readFile(file).catch(err => {
+            console.error(err)
+        })
+
+
+        fileUpload.style.display = "none"
+
+        if (content) {
+
+            data = parse(content)
+
+            cleanupState(state)
+            state = createState(data.degree, data.knotVector)
+
+            // Add anchors mapped to window space
+            state.anchors = pointsToAnchors(data.points)
+            // Add the handles
+            state.handles = anchorsToCircles(state.anchors)
+        }
+
+    } else {
+        alert("Please fill out one of the input fields.")
+    }
+
+})
+
+
+
+
 
 
 
@@ -82,7 +150,7 @@ state.handles = state.anchors.map(anchor => {
 elem?.addEventListener("mousedown", (e) => mousedownHandler(e, state, Two, two))
 elem?.addEventListener("mouseup", (e) => mouseupHandler(state))
 elem?.addEventListener("mousemove", (e) => mousemoveHandler(e, state, Two))
-// elem?.addEventListener("click", (e) => addpointHandler(e, state, Two, two))
+elem?.addEventListener("click", (e) => addpointHandler(e, state, Two, two))
 
 
 
@@ -121,21 +189,26 @@ two.bind('update', () => {
     let controlPoints = state.handles.map(handle => {
         return [handle.translation.x / window.innerWidth, handle.translation.y / window.innerHeight]
     })
-    for (let i = 0; i < lim; i += res) {
-        let v = deBoor(i, data.degree + 1, controlPoints, state.knots)
-        pointsOnCurve.push(v)
-        // let b = interpolate(i, data.degree, data.points, data.knotVector)
-        // points2.push(b)
+
+    if (state.mode != MODE_INSERT) {
+
+        for (let i = 0; i < lim; i += res) {
+            let v = deBoor(i, data.degree + 1, controlPoints, state.knots)
+            pointsOnCurve.push(v)
+            // let b = interpolate(i, data.degree, data.points, data.knotVector)
+            // points2.push(b)
+        }
+
+        const pointsInWindowSpace = pointsOnCurve.map(point => {
+            let x = point[0] * window.innerWidth
+            let y = point[1] * window.innerHeight
+
+            return new Two.Anchor(x, y)
+        })
+        curve.vertices = pointsInWindowSpace
+
     }
 
-    const pointsInWindowSpace = pointsOnCurve.map(point => {
-        let x = point[0] * window.innerWidth
-        let y = point[1] * window.innerHeight
-
-        return new Two.Anchor(x, y)
-    })
-
-    curve.vertices = pointsInWindowSpace
 }).play();
 
 
