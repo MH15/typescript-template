@@ -14,14 +14,13 @@ export function deBoor(u, k, points, knots) {
 
 
 
-    // remap t to the domain where the spline is defined
     let low = knots[degree];
     let high = knots[knots.length - degree - 1];
     let t = u * (high - low) + low;
     // console.log(low, high)
 
 
-    // find s (the spline segment) for the [t] value provided
+    // find the spline segment for t
     for (j = degree; j < knots.length - degree - 1; j++) {
         if (t >= knots[j] && t <= knots[j + 1]) {
             break;
@@ -115,7 +114,7 @@ export function BoehmKnotInsertion(h, k, points, knots) {
     }, 0);
     // 
     let scaledKnots = newKnotVector.map(knot => knot / max)
-    console.log(scaledKnots)
+    // console.log(scaledKnots)
 
     knots = newKnotVector
 
@@ -152,7 +151,7 @@ export function BoehmKnotInsertion(h, k, points, knots) {
     // Replace k - 2 control points
     for (let i = j - k + 0; i < j - 1; i++) {
         // console.log("i3:", i)
-        let alpha = (t - knots[i]) / (knots[i + degree] - knots[i]);
+        let alpha = (newKnot - knots[i]) / (knots[i + degree] - knots[i]);
         console.log("alpha: ", alpha, knots[i], knots[i + degree])
         let a = points[i - 1]
         let b = points[i]
